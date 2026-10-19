@@ -33,8 +33,9 @@ builds once, creates and migrates the market databases and containers, and start
 
 Ctrl+C stops the services; the containers keep running (`docker compose -f platform/docker-compose.yml down`
 stops them). If a port is taken, set `SQL_PORT`, `SEQ_PORT` or `BLOB_PORT` before running: the containers and
-the services both read them. The first application after a start takes a few seconds longer while the runtime
-warms up.
+the services both read them. The first application after a start takes about twice as long as the rest (8 s instead of 4 on my
+machine) while the runtime warms up, so it can come back `IN_PROGRESS` right at the edge of the wait; `GET`
+shows `APPROVED` a moment later.
 
 **Tests:** `dotnet test src/Atlas.slnx`. The unit tests need nothing. The integration tests need the compose
 stack: they run all three services in one process against it, under their own database and container names,
