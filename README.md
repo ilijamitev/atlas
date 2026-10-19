@@ -1,1 +1,1 @@
-# atlas-onboarding
+# atlas
