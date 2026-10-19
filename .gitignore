@@ -426,3 +426,9 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# Claude Code: personal and machine-local files
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/.gate-checked
+.claude/.gate-failures

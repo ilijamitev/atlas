@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Atlas.Shared\Atlas.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Atlas.UnitTests" />
+    <InternalsVisibleTo Include="Atlas.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

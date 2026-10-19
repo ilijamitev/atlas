@@ -1,0 +1,64 @@
+# Who gets in (GC-2026-0814 #2). Applicants hold a token per application; officers, branch staff and services
+# hold JWTs with a role and a market, and the market in the token must match the market in the route.
+
+@onboarding = http://localhost:5100
+@screening = http://localhost:5200
+@simulators = http://localhost:5300
+
+### 1. A draft to read.
+# @name create
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{ "firstName": "Test" }
+
+### 2. No token: 401.
+GET {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+
+### 3. The wrong token: 401, the same answer, so the API doesn't reveal which applications exist.
+GET {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: not-the-token
+
+### 4. The right token on the wrong market: 401.
+GET {{onboarding}}/v1/markets/MA/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### 5. Officers' cases without a token: 401.
+GET {{screening}}/v1/markets/MB/cases
+
+### 6. An MA officer on MB's cases: 403.
+# @name officer
+POST {{simulators}}/dev/token
+Content-Type: application/json
+
+{ "role": "officer", "market": "MA" }
+
+###
+GET {{screening}}/v1/markets/MB/cases
+Authorization: Bearer {{officer.response.body.accessToken}}
+
+### 7. Branch staff on the officers' API: 403.
+# @name staff
+POST {{simulators}}/dev/token
+Content-Type: application/json
+
+{ "role": "branch", "market": "MB" }
+
+###
+GET {{screening}}/v1/markets/MB/cases
+Authorization: Bearer {{staff.response.body.accessToken}}
+
+### 8. A market this deployment doesn't serve: 404 market.unknown.
+POST {{onboarding}}/v1/markets/MZ/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{ "firstName": "Test" }
+
+### 9. An MB identifier in MD's format: 400 with the field code, and the value isn't echoed back.
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{ "identifier": { "type": "NATIONAL_ID", "value": "1234567890", "issuingCountry": "XB" } }

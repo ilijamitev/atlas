@@ -1,0 +1,3 @@
+# Normalise line endings in the repository; check out shell scripts with LF so bash on macOS and Linux can run them.
+* text=auto
+*.sh text eol=lf

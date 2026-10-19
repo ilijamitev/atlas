@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="Atlas.Onboarding/Atlas.Onboarding.csproj" />
+  <Project Path="Atlas.Screening/Atlas.Screening.csproj" />
+  <Project Path="Atlas.Shared/Atlas.Shared.csproj" />
+  <Project Path="Atlas.Simulators/Atlas.Simulators.csproj" />
+  <Project Path="Atlas.IntegrationTests/Atlas.IntegrationTests.csproj" />
+  <Project Path="Atlas.UnitTests/Atlas.UnitTests.csproj" />
+</Solution>

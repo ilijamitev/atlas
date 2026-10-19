@@ -1,0 +1,71 @@
+# IDNow's answer decides what happens next. A valid document with a matching face goes on to screening. An
+# INVALID document is rejected and never screened. Anything in between (INCONCLUSIVE, a face mismatch, low
+# confidence) asks for a retake, twice per market (config), then rejects.
+#
+# Image markers the IDNow simulator reacts to: INVALID, INCONCLUSIVE, FACE_MISMATCH, LOW_CONFIDENCE.
+
+@onboarding = http://localhost:5100
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+@lowConfidence = /9j/4EFUTEFTIFRFU1QgSU1BR0UgTE9XX0NPTkZJREVOQ0X/2Q==
+@invalid = /9j/4EFUTEFTIFRFU1QgSU1BR0UgSU5WQUxJRP/Z
+
+### 1. A blurry selfie: 201 ACTION_REQUIRED, nextAction RETAKE_PHOTO.
+# @name create
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{lowConfidence}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 2. Only photos can change now; details get 409 application.onlyPhotos.
+PATCH {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+Content-Type: application/json
+
+{ "email": "other@example.test" }
+
+### 3. A new selfie (every version is kept).
+PATCH {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+Content-Type: application/json
+
+{ "documents": [ { "type": "SELFIE", "image": "{{image}}" } ] }
+
+### 4. Submit again: 200 APPROVED.
+POST {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}/submit
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### 5. A forged document: 201 REJECTED straight away, and World-Check is never called.
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{invalid}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}

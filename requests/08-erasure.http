@@ -1,0 +1,55 @@
+# Erasure (GC-2026-0814 #5) against ten-year retention (#4). A draft that was never submitted is deleted at
+# once, rows and images. A submitted application is restricted: processing stops, the record stays until
+# retention ends. Whether retention overrides erasure is an open question for Compliance.
+
+@onboarding = http://localhost:5100
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### 1. A draft with two images.
+# @name draft
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ]
+}
+
+### 2. Erase it: 200 DELETED. The token no longer works (401), and the blobs are gone.
+POST {{onboarding}}/v1/markets/MB/applications/{{draft.response.body.applicationId}}/erasure
+X-Application-Token: {{draft.response.body.applicationToken}}
+
+### 3. A submitted application.
+# @name submitted
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 4. Erase it: 202 RESTRICTED with deleteAfter ten years from submission.
+POST {{onboarding}}/v1/markets/MB/applications/{{submitted.response.body.applicationId}}/erasure
+X-Application-Token: {{submitted.response.body.applicationToken}}
+
+### 5. The applicant sees WITHDRAWN; nothing can be changed or activated any more.
+GET {{onboarding}}/v1/markets/MB/applications/{{submitted.response.body.applicationId}}
+X-Application-Token: {{submitted.response.body.applicationToken}}

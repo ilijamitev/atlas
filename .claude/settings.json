@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "DOTNET_ENVIRONMENT": "Development",
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet run:*)",
+      "Bash(dotnet format:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet tool restore:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(docker compose -f platform/docker-compose.yml up:*)",
+      "Bash(docker compose -f platform/docker-compose.yml ps:*)",
+      "Bash(docker compose -f platform/docker-compose.yml logs:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(curl -s http://localhost:*)"
+    ],
+    "ask": [
+      "Bash(git commit:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(dotnet package add:*)",
+      "Edit(Directory.Packages.props)",
+      "Bash(docker compose -f platform/docker-compose.yml down:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/format-csharp.ps1"
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/guard-personal-data.ps1"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/build-gate.ps1",
+            "timeout": 900
+          }
+        ]
+      }
+    ]
+  }
+}

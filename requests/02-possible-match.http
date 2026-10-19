@@ -1,0 +1,68 @@
+# A possible sanctions match (GC-2026-0814 #3): the customer sees UNDER_REVIEW, a compliance officer of the
+# market decides, and only then does the application move on. A last name containing MATCH is a sanctions
+# hit in the World-Check simulator; PEP is a PEP hit.
+
+@onboarding = http://localhost:5100
+@screening = http://localhost:5200
+@simulators = http://localhost:5300
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### 1. Create: answers 201 UNDER_REVIEW with nextAction WAIT. Nothing says why.
+# @name create
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester MATCH",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 2. An officer token for MB.
+# @name officer
+POST {{simulators}}/dev/token
+Content-Type: application/json
+
+{ "role": "officer", "market": "MB", "subject": "officer-mb-1" }
+
+### 3. The officer's queue, soonest due first. No personal data in the list.
+# @name cases
+GET {{screening}}/v1/markets/MB/cases
+Authorization: Bearer {{officer.response.body.accessToken}}
+
+### 4. One case: the subject as screened and World-Check's matches. This read is access-logged.
+GET {{screening}}/v1/markets/MB/cases/{{cases.response.body.$[0].caseId}}
+Authorization: Bearer {{officer.response.body.accessToken}}
+
+### 5. An MA officer on the same case: 403.
+# @name otherOfficer
+POST {{simulators}}/dev/token
+Content-Type: application/json
+
+{ "role": "officer", "market": "MA" }
+
+###
+GET {{screening}}/v1/markets/MB/cases/{{cases.response.body.$[0].caseId}}
+Authorization: Bearer {{otherOfficer.response.body.accessToken}}
+
+### 6. The decision: CLEAR or REJECT, with a reason. A second decision gets 409.
+POST {{screening}}/v1/markets/MB/cases/{{cases.response.body.$[0].caseId}}/decision
+Authorization: Bearer {{officer.response.body.accessToken}}
+Content-Type: application/json
+
+{ "decision": "CLEAR", "reason": "False positive: the list entry's date of birth differs." }
+
+### 7. Onboarding checks Screening every minute at first: within a minute or two this is APPROVED.
+GET {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}

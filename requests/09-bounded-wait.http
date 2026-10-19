@@ -1,0 +1,72 @@
+# The one-call promise and its limit. A submit waits up to 8 s for the decision (under Android OkHttp's
+# 10 s default read timeout). A provider that answers inside the wait gives a final status in the same call;
+# one that doesn't gives the current status, and GET returns the rest later.
+
+@onboarding = http://localhost:5100
+@simulators = http://localhost:5300
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### 1. IDNow at 4 s instead of 2 s: the whole chain still fits (about 4 + 1 + 0.4 s). Expect 201 APPROVED.
+PUT {{simulators}}/_control/idnow
+Content-Type: application/json
+
+{ "mode": "healthy", "latencyMs": 4000 }
+
+###
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 2. IDNow at 9 s: past the wait. Expect 201 IN_PROGRESS with nextAction WAIT after about 8 s ...
+PUT {{simulators}}/_control/idnow
+Content-Type: application/json
+
+{ "mode": "slow" }
+
+###
+# @name slow
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### ... and APPROVED a few seconds later.
+GET {{onboarding}}/v1/markets/MB/applications/{{slow.response.body.applicationId}}
+X-Application-Token: {{slow.response.body.applicationToken}}
+
+### Back to normal.
+PUT {{simulators}}/_control/idnow
+Content-Type: application/json
+
+{ "mode": "healthy" }

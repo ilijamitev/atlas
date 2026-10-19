@@ -1,0 +1,63 @@
+# A retry after a dropped connection must never create a second application. The same Idempotency-Key with
+# the same body returns the same application (with a fresh token); with a different body it's refused.
+
+@onboarding = http://localhost:5100
+@key = {{$guid}}
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### 1. Create.
+# @name first
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 2. The same request again: 201 with the same applicationId, and one identification in the journal.
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 3. The same key with a different body: 422 idempotencyKey.reused.
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{key}}
+
+{ "firstName": "Other" }
+
+### 4. Submitting an already submitted application just reports where it is.
+POST {{onboarding}}/v1/markets/MB/applications/{{first.response.body.applicationId}}/submit
+X-Application-Token: {{first.response.body.applicationToken}}
+
+### 5. One identification for the application, however many times it was sent.
+GET http://localhost:5300/_control/requests?provider=idnow&keyPrefix={{first.response.body.applicationId}}

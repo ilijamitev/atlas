@@ -1,0 +1,82 @@
+{
+  "Atlas": {
+    "Sql": {
+      "Server": "localhost",
+      "Port": 1433,
+      "User": "sa",
+      "Password": "Local_Dev_Password_1",
+      "DatabasePrefix": "atlas"
+    },
+    "Seq": {
+      "Url": "http://localhost:5341"
+    },
+    "Auth": {
+      "Issuer": "atlas-dev",
+      "Audience": "atlas",
+      "SigningKey": "5OmqCYv7wRBt/P3PPxhMcPgeH9svNH3n1vxk3zQSWDc="
+    },
+    "Markets": {
+      "MA": {
+        "Country": "XA",
+        "Activation": "Remote",
+        "ConfidenceThreshold": 0.85,
+        "MaxRetakes": 2,
+        "MinimumAge": 18,
+        "Identifiers": {
+          "NATIONAL_ID": { "Pattern": "^[0-9]{13}$", "Description": "Personal Number: 13 digits", "CheckDigit": "None" }
+        }
+      },
+      "MB": {
+        "Country": "XB",
+        "Activation": "Remote",
+        "ConfidenceThreshold": 0.85,
+        "MaxRetakes": 2,
+        "MinimumAge": 18,
+        "Identifiers": {
+          "NATIONAL_ID": { "Pattern": "^[0-9]{13}$", "Description": "Personal Number: 13 digits", "CheckDigit": "None" }
+        }
+      },
+      "MC": {
+        "Country": "XC",
+        "Activation": "Remote",
+        "ConfidenceThreshold": 0.85,
+        "MaxRetakes": 2,
+        "MinimumAge": 18,
+        "Identifiers": {
+          "NATIONAL_ID": { "Pattern": "^[A-Z0-9]{8}[A-Z]$", "Description": "Unified Citizen ID: 9 letters or digits, a letter in position 9", "CheckDigit": "None" }
+        }
+      },
+      "MD": {
+        "Country": "XD",
+        "Activation": "InBranch",
+        "ConfidenceThreshold": 0.85,
+        "MaxRetakes": 2,
+        "MinimumAge": 18,
+        "Identifiers": {
+          "NATIONAL_ID": { "Pattern": "^[0-9]{10}$", "Description": "Citizen Number: 10 digits", "CheckDigit": "None" }
+        }
+      },
+      "ME": {
+        "Country": "XE",
+        "Activation": "Remote",
+        "ConfidenceThreshold": 0.85,
+        "MaxRetakes": 2,
+        "MinimumAge": 18,
+        "Identifiers": {
+          "NATIONAL_ID": { "Pattern": "^[0-9]{10}$", "Description": "Civil Number: 10 digits", "CheckDigit": "None" }
+        }
+      },
+      "MF": {
+        "Country": "XF",
+        "Activation": "Remote",
+        "ConfidenceThreshold": 0.85,
+        "MaxRetakes": 2,
+        "MinimumAge": 18,
+        "Identifiers": {
+          "NATIONAL_ID": { "Pattern": "^[A-Z0-9]{1,20}$", "Description": "Personal Number (format unconfirmed)", "CheckDigit": "None" },
+          "PASSPORT": { "Pattern": "^[A-Z0-9]{6,9}$", "Description": "Passport number, accepted in lieu for non-citizen residents", "CheckDigit": "None" }
+        }
+      }
+    }
+  }
+}

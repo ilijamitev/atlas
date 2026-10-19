@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # The same compose file reviewers run. Seq isn't needed here.
+      - name: Start SQL Server and Azurite
+        run: docker compose -f platform/docker-compose.yml up -d --wait sql azurite
+
+      - name: Restore
+        run: dotnet restore src/Atlas.slnx
+
+      # GitHub sets CI=true, which turns warnings and high or critical NuGet advisories into errors.
+      - name: Build
+        run: dotnet build src/Atlas.slnx --no-restore -c Release
+
+      - name: Unit tests
+        run: dotnet test src/Atlas.UnitTests --no-build -c Release
+
+      - name: Integration tests
+        run: dotnet test src/Atlas.IntegrationTests --no-build -c Release

@@ -1,0 +1,53 @@
+# Save and resume: create with what the app has, add the rest later, submit when complete. Drafts live on
+# the server, never on the phone. Every response says what is still missing.
+
+@onboarding = http://localhost:5100
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### 1. A partial create: 201 DRAFT, nextAction COMPLETE_DETAILS, missingFields listed.
+# @name create
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{ "firstName": "Test", "lastName": "Tester" }
+
+### 2. Submitting too early lists every missing field as a validation error.
+POST {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}/submit
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### 3. The rest arrives later (a tunnel, a day). An invalid identifier here would be 400 identifier.format.
+PATCH {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+Content-Type: application/json
+
+{
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ]
+}
+
+### 4. Accept the terms: nextAction becomes SUBMIT.
+PATCH {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+Content-Type: application/json
+
+{ "termsAccepted": true }
+
+### 5. Submit: 200 with the final answer, or 202 with the current status if it takes longer than 8 s.
+POST {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}/submit
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### 6. After submit, details can't be changed: 409 application.notEditable.
+PATCH {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+Content-Type: application/json
+
+{ "email": "other@example.test" }

@@ -1,0 +1,65 @@
+# "If a provider is down ... build in retries." An outage parks the application; it resumes when the
+# provider is back, and nobody is rejected for it.
+#
+# Fault modes for PUT /_control/{idnow|worldcheck|corebanking}:
+#   healthy | down (503) | error500 | slow (9 s, past the 8 s wait) | timeout (never answers) | reject (422)
+#   failNext: N calls fail with 503 first;  latencyMs: replaces the provider's usual latency
+
+@onboarding = http://localhost:5100
+@simulators = http://localhost:5300
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### 1. Take IDNow down.
+PUT {{simulators}}/_control/idnow
+Content-Type: application/json
+
+{ "mode": "down" }
+
+### 2. Create: 201 IN_PROGRESS, nextAction WAIT. The application is parked with a backoff, not rejected.
+# @name create
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### 3. Still IN_PROGRESS while IDNow is down.
+GET {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### 4. Bring IDNow back.
+PUT {{simulators}}/_control/idnow
+Content-Type: application/json
+
+{ "mode": "healthy" }
+
+### 5. Within the backoff (5 s, doubling to 5 min): APPROVED.
+GET {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### 6. The journal: the failed attempts, then exactly one successful identification, all under one key.
+GET {{simulators}}/_control/requests?provider=idnow&keyPrefix={{create.response.body.applicationId}}
+
+### 7. A permanent refusal (core banking says 422) stops the retries and flags the application for operations
+#    instead; its status doesn't change. Try it: set reject, create, then look at the Onboarding log.
+PUT {{simulators}}/_control/corebanking
+Content-Type: application/json
+
+{ "mode": "reject" }
+
+### Reset every provider to healthy and clear the journal.
+DELETE {{simulators}}/_control

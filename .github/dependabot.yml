@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Minor and patch updates only: .NET 11's packages (due November 2026) would be major-version upgrade PRs.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

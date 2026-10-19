@@ -1,0 +1,37 @@
+# The ticket's flow: one POST with everything, one answer. Run the requests top to bottom
+# (VS Code REST Client, Rider or Visual Studio). Every applicant here is made up.
+#
+# The images are tiny JPEG-shaped files with a plain-text marker inside; the IDNow simulator reads the
+# marker. Real images work the same way: no marker means a valid document and a matching face.
+
+@onboarding = http://localhost:5100
+@image = /9j/4EFUTEFTIFRFU1QgSU1BR0X/2Q==
+
+### Create and submit in one call. Waits up to 8 s and answers 201 APPROVED on the happy path.
+# @name create
+POST {{onboarding}}/v1/markets/MB/applications
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "firstName": "Test",
+  "lastName": "Tester",
+  "dateOfBirth": "1990-01-01",
+  "nationality": "XB",
+  "countryOfResidence": "XB",
+  "identifier": { "type": "NATIONAL_ID", "value": "9876543210987", "issuingCountry": "XB" },
+  "email": "applicant@example.test",
+  "phone": "+15550100100",
+  "documents": [
+    { "type": "PASSPORT", "image": "{{image}}" },
+    { "type": "SELFIE", "image": "{{image}}" }
+  ],
+  "termsAccepted": true
+}
+
+### The applicant reads it back with the token from the create response: status, next action, masked identifier.
+GET {{onboarding}}/v1/markets/MB/applications/{{create.response.body.applicationId}}
+X-Application-Token: {{create.response.body.applicationToken}}
+
+### Which provider calls the application made, in order: identification, screen, account, card.
+GET http://localhost:5300/_control/requests?keyPrefix={{create.response.body.applicationId}}
